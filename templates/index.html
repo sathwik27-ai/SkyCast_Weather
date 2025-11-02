@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weather Forecast</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(to right, #74ebd5, #ACB6E5);
+            font-family: 'Segoe UI', sans-serif;
+            padding: 30px;
+            color: #333;
+        }
+        h1 {
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 30px;
+        }
+        .weather-box, .forecast-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        .forecast-card:hover {
+            transform: scale(1.05);
+        }
+        img {
+            width: 60px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+        }
+        .alert {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container text-center">
+        <h1>🌤️ Weather Forecast</h1>
+        <form method="POST" class="mb-4">
+            <input type="text" name="city" placeholder="Enter city name" required class="form-control w-50 d-inline-block">
+            <button type="submit" class="btn btn-primary">Get Weather</button>
+        </form>
+
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        {% if weather %}
+            <div class="weather-box">
+                <h2>{{ weather.city }}</h2>
+                <img src="http://openweathermap.org/img/wn/{{ weather.icon }}@2x.png">
+                <p><strong>{{ weather.description }}</strong></p>
+                <p>🌡️ {{ weather.temperature }}°C (Feels like {{ weather.feels_like }}°C)</p>
+                <p>💧 Humidity: {{ weather.humidity }}% | 🌬️ Wind: {{ weather.wind }} km/h | 🌧️ Precipitation: {{ weather.precip }}%</p>
+                <p><em>{{ message }}</em></p>
+            </div>
+
+            <h4>Hourly Forecast</h4>
+            <div class="row justify-content-center">
+                {% for hour in hourly %}
+                    <div class="col-md-2 forecast-card">
+                        <p>{{ hour.time }}</p>
+                        <img src="http://openweathermap.org/img/wn/{{ hour.icon }}.png">
+                        <p>{{ hour.temp }}°C</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <h4 class="mt-4">Daily Forecast</h4>
+            <div class="row justify-content-center">
+                {% for day in daily %}
+                    <div class="col-md-2 forecast-card">
+                        <p>{{ day.day }}</p>
+                        <img src="http://openweathermap.org/img/wn/{{ day.icon }}.png">
+                        <p>{{ day.max }}° / {{ day.min }}°</p>
+                        <p>💧 {{ day.humidity }}% | 🌧️ {{ day.precip }}%</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-5">
+                <h4>📊 Hourly Temperature</h4>
+                {{ temp_chart | safe }}
+
+                <h4 class="mt-4">📅 5-Day Forecast Overview</h4>
+                {{ forecast_chart | safe }}
+            </div>
+        {% endif %}
+    </div>
+</body
