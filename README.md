@@ -4,6 +4,10 @@ Search for a city, region, or country and explore its weather forecast on an
 interactive world map. This lightweight Flask web app combines global place
 search with weather details and forecast charts in one simple interface.
 
+## Live demo
+
+Try the deployed app: [World Weather Explorer](https://sky-cast-weather-nine.vercel.app/)
+
 ## ✨ What it does
 
 - **Search worldwide:** Look up locations by name, not just within India.
