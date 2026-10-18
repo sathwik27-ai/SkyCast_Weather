@@ -6,7 +6,7 @@ search with weather details and forecast charts in one simple interface.
 
 ## Live demo
 
-Try the deployed app: [World Weather Explorer](https://sky-cast-weather-nine.vercel.app/)
+Try the deployed app: [World Weather Explorer](https://sky-cast-weather-nine.vercel.app/).
 
 ## ✨ What it does
 
