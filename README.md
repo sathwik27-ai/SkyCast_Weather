@@ -9,10 +9,10 @@ search with weather details and forecast charts in one simple interface.
 - **Search worldwide:** Look up locations by name, not just within India.
 - **Find places on the map:** Pan and zoom around the OpenStreetMap world map;
   a successful search centers the map and marks the matched location.
-- **See weather details:** View temperature, feels-like temperature, humidity,
-  wind speed, conditions, and precipitation chance.
-- **Explore the forecast:** Browse upcoming forecast intervals and a daily
-  summary, with interactive temperature and forecast charts.
+- **See current conditions:** Get OpenWeather's current conditions separately
+  from the forecast, including temperature, humidity, and wind speed.
+- **Explore the forecast:** Browse 3-hour forecast intervals and estimated
+  daily summaries with interactive charts.
 - **Handle regional names:** If OpenWeather does not find a place, the app
   tries OpenStreetMap's global place search.
 
@@ -110,6 +110,12 @@ python -m unittest discover -s tests -v
 For more specific matches, include a region or country—for example, `Paris,
 France` or `Springfield, Illinois, USA`. Some regions and informal place names
 may not have weather forecasts available even if they appear in the map search.
+For a region, weather is for the resolved map coordinate, not a guarantee that
+conditions represent every part of that region. Current conditions come from
+the current-weather endpoint; upcoming and daily values are forecasts, with
+daily highs and lows estimated from 3-hour samples. Weather forecasts are
+inherently uncertain, especially further into the future, so no result can be
+guaranteed exact.
 
 ## 📁 Project layout
 
@@ -120,13 +126,15 @@ Python-CBP/
 │   └── index.html      # Search form, results, charts, and interactive map
 ├── tests/
 │   └── test_app.py     # Location search route tests
+├── requirements.txt    # Python package dependencies
 └── README.md           # Project overview and setup guide
 ```
 
 ## ⚠️ Troubleshooting
 
-- **Invalid or inactive API key:** Check the `API_KEY` value in `app.py` and
-  verify that your OpenWeather key is active and has the required API access.
+- **Invalid or inactive API key:** Check `OPENWEATHER_API_KEY` in your local
+  `.env` file and verify that your OpenWeather key is active and has the
+  required API access.
 - **Location not found:** Try a more specific spelling, or include the
   country/region. Search coverage for informal regional names can vary.
 - **Could not connect / service error:** Check your internet connection and try

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import plotly.graph_objs as go
 import plotly.io as pio
 import time
@@ -97,31 +97,39 @@ def _resolve_location(query):
     }, None
 
 
-def _build_forecast(data, location):
-    weather = None
+def _build_forecast(data, location, current_data):
     hourly = []
     daily = []
     message = ""
     temp_chart = ""
     forecast_chart = ""
 
-    current = data["list"][0]
+    city_timezone = timezone(timedelta(seconds=data["city"]["timezone"]))
+    current_time = datetime.fromtimestamp(
+        current_data["dt"], tz=timezone.utc
+    ).astimezone(city_timezone)
+    current = current_data
+    next_period = data["list"][0]
     weather = {
         "city": location["label"],
         "temperature": current["main"]["temp"],
         "feels_like": current["main"]["feels_like"],
         "humidity": current["main"]["humidity"],
-        "wind": current["wind"]["speed"],
+        "wind": round(current["wind"]["speed"] * 3.6, 1),
         "description": current["weather"][0]["description"].title(),
         "icon": current["weather"][0]["icon"],
-        "precip": current.get("pop", 0) * 100
+        "precip": round(next_period.get("pop", 0) * 100),
+        "updated_at": current_time.strftime("%b %d, %Y at %I:%M %p"),
     }
 
     times = []
     temps = []
 
-    for entry in data["list"][1:6]:
-        time = datetime.strptime(entry["dt_txt"], "%Y-%m-%d %H:%M:%S").strftime("%I %p")
+    for entry in data["list"][:5]:
+        local_time = datetime.fromtimestamp(
+            entry["dt"], tz=timezone.utc
+        ).astimezone(city_timezone)
+        time = local_time.strftime("%a %I %p")
         temp = entry["main"]["temp"]
         icon = entry["weather"][0]["icon"]
 
@@ -131,49 +139,59 @@ def _build_forecast(data, location):
 
     days = {}
     for entry in data["list"]:
-        date = entry["dt_txt"].split(" ")[0]
+        local_time = datetime.fromtimestamp(
+            entry["dt"], tz=timezone.utc
+        ).astimezone(city_timezone)
+        date = local_time.date()
+        if date <= current_time.date():
+            continue
         temp = entry["main"]["temp"]
         humidity = entry["main"]["humidity"]
         pop = entry.get("pop", 0) * 100
         icon = entry["weather"][0]["icon"]
         if date not in days:
-            days[date] = {"min": temp, "max": temp, "humidity": humidity, "precip": pop, "icon": icon}
+            days[date] = {
+                "min": temp,
+                "max": temp,
+                "humidity_total": humidity,
+                "samples": 1,
+                "precip": pop,
+                "icons": {icon: 1},
+            }
         else:
             days[date]["min"] = min(days[date]["min"], temp)
             days[date]["max"] = max(days[date]["max"], temp)
-            days[date]["humidity"] = humidity
-            days[date]["precip"] = pop
+            days[date]["humidity_total"] += humidity
+            days[date]["samples"] += 1
+            days[date]["precip"] = max(days[date]["precip"], pop)
+            days[date]["icons"][icon] = days[date]["icons"].get(icon, 0) + 1
 
     day_labels = []
     day_temps = []
     day_humidity = []
     day_precip = []
 
-    for i, (date, info) in enumerate(days.items()):
-        if i == 0:
-            continue
-        day = datetime.strptime(date, "%Y-%m-%d").strftime("%A")
+    for date, info in days.items():
+        day = date.strftime("%A")
+        icon = max(info["icons"], key=info["icons"].get)
         daily.append({
             "day": day,
             "max": round(info["max"]),
             "min": round(info["min"]),
-            "humidity": info["humidity"],
-            "precip": info["precip"],
-            "icon": info["icon"]
+            "humidity": round(info["humidity_total"] / info["samples"]),
+            "precip": round(info["precip"]),
+            "icon": icon
         })
         day_labels.append(day)
         day_temps.append(round(info["max"]))
-        day_humidity.append(info["humidity"])
+        day_humidity.append(daily[-1]["humidity"])
         day_precip.append(info["precip"])
 
     if daily:
-        diff = round(daily[0]["max"] - weather["temperature"])
-        if diff < 0:
-            message = f"Tomorrow's temperature will be {abs(diff)}° lower."
-        elif diff > 0:
-            message = f"Tomorrow's temperature will be {diff}° higher."
-        else:
-            message = "Tomorrow's temperature will be the same as today."
+        message = (
+            f"Tomorrow's estimated high is {daily[0]['max']}°C "
+            f"and low is {daily[0]['min']}°C."
+        )
 
     temp_fig = go.Figure(go.Scatter(x=times, y=temps, mode='lines+markers', name='Temperature', line=dict(color='orange')))
     temp_fig.update_layout(title="Hourly Temperature", xaxis_title="Time", yaxis_title="°C", template="plotly_white", hovermode="x unified")
@@ -208,8 +226,8 @@ def index():
             try:
                 location, error = _resolve_location(city)
                 if location:
-                    response = requests.get(
-                        "https://api.openweathermap.org/data/2.5/forecast",
+                    current_response = requests.get(
+                        "https://api.openweathermap.org/data/2.5/weather",
                         params={
                             "lat": location["lat"],
                             "lon": location["lon"],
@@ -218,13 +236,26 @@ def index():
                         },
                         timeout=10,
                     )
-                    if response.status_code == 200:
-                        map_location = location
-                        (
-                            weather, hourly, daily, message, temp_chart, forecast_chart
-                        ) = _build_forecast(response.json(), location)
+                    if current_response.status_code != 200:
+                        error = _service_error(current_response, "OpenWeather current weather")
                     else:
-                        error = _service_error(response, "OpenWeather forecast")
+                        response = requests.get(
+                            "https://api.openweathermap.org/data/2.5/forecast",
+                            params={
+                                "lat": location["lat"],
+                                "lon": location["lon"],
+                                "appid": API_KEY,
+                                "units": "metric",
+                            },
+                            timeout=10,
+                        )
+                        if response.status_code == 200:
+                            map_location = location
+                            (
+                                weather, hourly, daily, message, temp_chart, forecast_chart
+                            ) = _build_forecast(response.json(), location, current_response.json())
+                        else:
+                            error = _service_error(response, "OpenWeather forecast")
             except requests.RequestException:
                 app.logger.exception("A location or weather API request failed")
                 error = "Could not connect to a location or weather service. Please try again."

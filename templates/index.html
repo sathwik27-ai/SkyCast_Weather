@@ -66,11 +66,13 @@
                 <img src="https://openweathermap.org/img/wn/{{ weather.icon }}@2x.png">
                 <p><strong>{{ weather.description }}</strong></p>
                 <p>🌡️ {{ weather.temperature }}°C (Feels like {{ weather.feels_like }}°C)</p>
-                <p>💧 Humidity: {{ weather.humidity }}% | 🌬️ Wind: {{ weather.wind }} km/h | 🌧️ Precipitation: {{ weather.precip }}%</p>
+                <p>💧 Humidity: {{ weather.humidity }}% | 🌬️ Wind: {{ weather.wind }} km/h</p>
+                <p>🌧️ Rain chance in the next forecast interval: {{ weather.precip }}%</p>
+                <p class="text-muted"><small>Current conditions updated {{ weather.updated_at }} (local time)</small></p>
                 <p><em>{{ message }}</em></p>
             </div>
 
-            <h4>Hourly Forecast</h4>
+            <h4>Upcoming Forecast (3-hour intervals)</h4>
             <div class="row justify-content-center">
                 {% for hour in hourly %}
                     <div class="col-md-2 forecast-card">
@@ -81,25 +83,27 @@
                 {% endfor %}
             </div>
 
-            <h4 class="mt-4">Daily Forecast</h4>
+            <h4 class="mt-4">Daily Estimates</h4>
             <div class="row justify-content-center">
                 {% for day in daily %}
                     <div class="col-md-2 forecast-card">
                         <p>{{ day.day }}</p>
                         <img src="https://openweathermap.org/img/wn/{{ day.icon }}.png">
                         <p>{{ day.max }}° / {{ day.min }}°</p>
-                        <p>💧 {{ day.humidity }}% | 🌧️ {{ day.precip }}%</p>
+                        <p>💧 Avg. humidity: {{ day.humidity }}%</p>
+                        <p>🌧️ Peak 3-hour rain chance: {{ day.precip }}%</p>
                     </div>
                 {% endfor %}
             </div>
 
             <div class="mt-5">
-                <h4>📊 Hourly Temperature</h4>
+                <h4>📊 Temperature Forecast (3-hour intervals)</h4>
                 {{ temp_chart | safe }}
 
-                <h4 class="mt-4">📅 5-Day Forecast Overview</h4>
+                <h4 class="mt-4">📅 Estimated 5-Day Forecast Overview</h4>
                 {{ forecast_chart | safe }}
             </div>
+            <p class="text-muted"><small>Forecasts are estimates and can change. Daily highs and lows are estimated from 3-hour forecast samples; actual conditions may vary.</small></p>
         {% endif %}
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
